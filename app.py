@@ -5,9 +5,11 @@ import mockdb.mockdb_interface as db
 
 app = Flask(__name__)
 
-"""
-Constants that I would move to a constants.py file
-"""
+ENDPOINT_MAIN = "/"
+ENDPOINT_MIRROR = "/mirror"
+ENDPOINT_USERS = "/users"
+ENDPOINT_USERS_BY_ID = "/users/<int:user_id>"
+
 TYPE_USER = "users"
 
 
@@ -46,7 +48,7 @@ def create_response(
 """
 
 
-@app.route("/")
+@app.route(ENDPOINT_MAIN)
 def hello_world():
     return create_response({"content": "hello world!"})
 
@@ -57,7 +59,7 @@ def mirror(name):
     return create_response(data)
 
 
-@app.route("/users", methods=["GET"])
+@app.route(ENDPOINT_USERS, methods=["GET"])
 def get_users():
     """
     Query parameters
@@ -72,17 +74,17 @@ def get_users():
         return create_response({"users": db.getByTeam(TYPE_USER, team)})
 
 
-@app.route("/users/<id>", methods=["GET"])
-def get_user_by_id(id):
-    user = db.getById(TYPE_USER, int(id))
+@app.route(ENDPOINT_USERS_BY_ID, methods=["GET"])
+def get_user_by_id(user_id):
+    user = db.getById(TYPE_USER, user_id)
     if user is None:
         return create_response(
-            status=404, message="Could not find a user with id {}".format(id)
+            status=404, message="Could not find a user with id {}".format(user_id)
         )
     return create_response({"user": user})
 
 
-@app.route("/users", methods=["POST"])
+@app.route(ENDPOINT_USERS, methods=["POST"])
 def create_user():
     data = request.get_json()
     if data is None:
@@ -99,30 +101,30 @@ def create_user():
     return create_response(data={"user": created_user}, status=201)
 
 
-@app.route("/users/<id>", methods=["PUT"])
-def update_user_by_id(id):
+@app.route(ENDPOINT_USERS_BY_ID, methods=["PUT"])
+def update_user_by_id(user_id):
     """
     Only name, age and team can be updated.
     """
     data = request.get_json()
     allowed_keys = ["name", "age", "team"]
     user_data = {k: data[k] for k in allowed_keys if k in data}
-    updated_user = db.updateById(TYPE_USER, int(id), user_data)
+    updated_user = db.updateById(TYPE_USER, user_id, user_data)
     if updated_user is None:
         return create_response(
-            status=404, message="Could not find a user with id {}".format(id)
+            status=404, message="Could not find a user with id {}".format(user_id)
         )
     return create_response({"user": updated_user})
 
 
-@app.route("/users/<id>", methods=["DELETE"])
-def delete_user_by_id(id):
-    if db.getById(TYPE_USER, int(id)) is None:
+@app.route(ENDPOINT_USERS_BY_ID, methods=["DELETE"])
+def delete_user_by_id(user_id):
+    if db.getById(TYPE_USER, user_id) is None:
         return create_response(
-            status=404, message="Could not find a user with id {}".format(id)
+            status=404, message="Could not find a user with id {}".format(user_id)
         )
-    db.deleteById(TYPE_USER, int(id))
-    return create_response(message="Deleted user with id {}".format(id))
+    db.deleteById(TYPE_USER, user_id)
+    return create_response(message="Deleted user with id {}".format(user_id))
 
 
 """
