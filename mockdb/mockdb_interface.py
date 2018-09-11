@@ -12,6 +12,10 @@ def getById(type, id):
     return next((i for i in get(type) if i["id"] == id), None)
 
 
+def getByTeam(type, team):
+    return [i for i in get(type) if i["team"] == team]
+
+
 def create(type, payload):
     last_id = max([i["id"] for i in get(type)])
     new_id = last_id + 1

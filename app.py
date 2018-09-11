@@ -5,12 +5,17 @@ import mockdb.mockdb_interface as db
 
 app = Flask(__name__)
 
+"""
+Constants that I would move to a constants.py file
+"""
+TYPE_USER = "users"
+
 
 def create_response(
     data: dict = None, status: int = 200, message: str = ""
 ) -> Tuple[Response, int]:
     """Wraps response in a consistent format throughout the API.
-    
+
     Format inspired by https://medium.com/@shazow/how-i-design-json-api-responses-71900f00f2db
     Modifications included:
     - make success a boolean since there's only 2 values
@@ -52,7 +57,73 @@ def mirror(name):
     return create_response(data)
 
 
-# TODO: Implement the rest of the API here!
+@app.route("/users", methods=["GET"])
+def get_users():
+    """
+    Query parameters
+    ----------------
+    team: Get list of users belonging to that team. If no users belong to that team,
+          responds with an empty list.
+    """
+    team = request.args.get("team")
+    if team is None:
+        return create_response({"users": db.get(TYPE_USER)})
+    else:
+        return create_response({"users": db.getByTeam(TYPE_USER, team)})
+
+
+@app.route("/users/<id>", methods=["GET"])
+def get_user_by_id(id):
+    user = db.getById(TYPE_USER, int(id))
+    if user is None:
+        return create_response(
+            status=404, message="Could not find a user with id {}".format(id)
+        )
+    return create_response({"user": user})
+
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.get_json()
+    if data is None:
+        return create_response(status=422, message="No JSON body provided")
+
+    required_keys = ["name", "age", "team"]
+    missing_keys = [k for k in required_keys if k not in data]
+    if len(missing_keys) > 0:
+        msg = "Body lacks the following data: {}".format(", ".join(missing_keys))
+        return create_response(status=422, message=msg)
+
+    user_data = {k: data[k] for k in required_keys}
+    created_user = db.create(TYPE_USER, user_data)
+    return create_response(data={"user": created_user}, status=201)
+
+
+@app.route("/users/<id>", methods=["PUT"])
+def update_user_by_id(id):
+    """
+    Only name, age and team can be updated.
+    """
+    data = request.get_json()
+    allowed_keys = ["name", "age", "team"]
+    user_data = {k: data[k] for k in allowed_keys if k in data}
+    updated_user = db.updateById(TYPE_USER, int(id), user_data)
+    if updated_user is None:
+        return create_response(
+            status=404, message="Could not find a user with id {}".format(id)
+        )
+    return create_response({"user": updated_user})
+
+
+@app.route("/users/<id>", methods=["DELETE"])
+def delete_user_by_id(id):
+    if db.getById(TYPE_USER, int(id)) is None:
+        return create_response(
+            status=404, message="Could not find a user with id {}".format(id)
+        )
+    db.deleteById(TYPE_USER, int(id))
+    return create_response(message="Deleted user with id {}".format(id))
+
 
 """
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~

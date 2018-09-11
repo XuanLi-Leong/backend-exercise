@@ -33,9 +33,61 @@ def tests_get_users_with_team(client):
 
 
 def test_get_user_id(client):
+    # Test successful request
     res = client.get("/users/1")
     assert res.status_code == 200
 
     res_user = res.json["result"]["user"]
     assert res_user["name"] == "Aria"
     assert res_user["age"] == 19
+
+    # Test bad request
+    res = client.get("/users/0")
+    assert res.status_code == 404
+    assert len(res.json["message"]) > 0
+
+
+def test_create_user(client):
+    # Test successful request
+    body = {"name": "Lato", "age": 28, "team": "C2TC"}
+    res = client.post("/users", json=body)
+    assert res.status_code == 201
+
+    res_user = res.json["result"]["user"]
+    assert res_user["name"] == "Lato"
+    assert res_user["id"] == 5
+
+    # Test bad request
+    body = {"name": "Lato", "age": 28}
+    res = client.post("/users", json=body)
+    assert res.status_code == 422
+    assert len(res.json["message"]) > 0
+
+
+def test_update_user_by_id(client):
+    body = {"name": "Angel"}
+
+    # Test successful request
+    res = client.put("/users/1", json=body)
+    assert res.status_code == 200
+
+    res_user = res.json["result"]["user"]
+    assert res_user["name"] == "Angel"
+    assert res_user["age"] == 19
+
+    # Test bad request
+    res = client.put("/users/0", json=body)
+    assert res.status_code == 404
+    assert len(res.json["message"]) > 0
+
+
+def test_delete_user_by_id(client):
+    # Test successful request
+    res = client.delete("/users/1")
+    assert res.status_code == 200
+    assert len(res.json["message"]) > 0
+
+    # Test bad request
+    res = client.delete("/users/1")
+    assert res.status_code == 404
+    assert len(res.json["message"]) > 0
